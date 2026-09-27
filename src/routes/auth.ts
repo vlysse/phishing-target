@@ -56,6 +56,18 @@ authRouter.post("/login", async (req, res) => {
 const bootstrapSchema = z.object({ token: z.string().min(1) });
 
 /**
+ * The post-handoff redirect target. A scheme-less FRONTEND_URL (e.g.
+ * "app.tdvx.site" pasted into Vercel without https://) would be treated by the
+ * browser as a RELATIVE path off /auth/, producing broken URLs like
+ * api.tdvx.site/auth/app.tdvx.site — so force an absolute https:// URL here.
+ */
+function resolveFrontendUrl(): string {
+  const raw = (process.env.FRONTEND_URL ?? "http://localhost:5173").trim();
+  if (/^https?:\/\//.test(raw)) return raw;
+  return `https://${raw.replace(/^\/+/, "")}`;
+}
+
+/**
  * Session handoff used by the phishing simulation: accepts a token already
  * issued by /auth/login (captured server-to-server), re-validates it, and
  * sets the cookie for whoever is holding this browser. Deliberately does NOT
@@ -80,7 +92,7 @@ authRouter.get("/session-bootstrap", async (req, res) => {
     }
 
     setSessionCookie(res, parsed.data.token);
-    return res.redirect(302, process.env.FRONTEND_URL ?? "http://localhost:5173");
+    return res.redirect(302, resolveFrontendUrl());
   } catch {
     return res.status(401).json({ error: "invalid_token" });
   }
