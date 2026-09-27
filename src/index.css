@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens extracted from the BankDash Dashboard UI Kit (Figma Community
+ * file, fileKey o55lkdbDHW9nGWKe02Avje) via the Figma MCP — node 4419:2257
+ * (Main Dashboard), 4419:1681 (Accounts), 4419:1992 (Transaction), 4419:292
+ * (Setting). Hex values below are taken directly from that file's styles and
+ * markup. The kit ships no dark-mode variants and no login screen — the dark
+ * values and the login page are original extensions kept close to the same
+ * hue family so the app doesn't fall back to the old placeholder palette.
+ */
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-brand: #2d60ff;
+  --color-brand-strong: #1814f3;
+  --color-expense: #ff4b4a;
+  --color-income: #41d4a8;
+  --color-chart-deposit: #1814f3;
+  --color-chart-withdraw: #16dbcc;
+
+  --color-surface: #f5f7fa;
+  --color-card: #ffffff;
+  --color-border: #e6eff5;
+  --color-border-strong: #dfeaf2;
+  --color-gridline: #f3f3f5;
+
+  --color-text-primary: #343c6a;
+  --color-text-secondary: #718ebf;
+  --color-text-muted: #8ba3cb;
+  --color-text-inactive: #b1b1b1;
+
+  --color-success: #41d4a8;
+  --color-good: #41d4a8;
+  --color-warning: #fab219;
+  --color-serious: #ff9f43;
+  --color-critical: #ff4b4a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-brand: #4c7bff;
+    --color-brand-strong: #3a4bff;
+    --color-expense: #ff6a69;
+    --color-income: #41d4a8;
+    --color-chart-deposit: #5a56ff;
+    --color-chart-withdraw: #16dbcc;
+
+    --color-surface: #0d0f1a;
+    --color-card: #161a2b;
+    --color-border: #262b40;
+    --color-border-strong: #323852;
+    --color-gridline: #262b40;
+
+    --color-text-primary: #f3f5fb;
+    --color-text-secondary: #a6b3d6;
+    --color-text-muted: #7c88ad;
+    --color-text-inactive: #5c6488;
+
+    --color-success: #41d4a8;
+    --color-good: #41d4a8;
+    --color-warning: #fab219;
+    --color-serious: #ff9f43;
+    --color-critical: #ff6a69;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-brand: #4c7bff;
+  --color-brand-strong: #3a4bff;
+  --color-expense: #ff6a69;
+  --color-income: #41d4a8;
+  --color-chart-deposit: #5a56ff;
+  --color-chart-withdraw: #16dbcc;
+
+  --color-surface: #0d0f1a;
+  --color-card: #161a2b;
+  --color-border: #262b40;
+  --color-border-strong: #323852;
+  --color-gridline: #262b40;
+
+  --color-text-primary: #f3f5fb;
+  --color-text-secondary: #a6b3d6;
+  --color-text-muted: #7c88ad;
+  --color-text-inactive: #5c6488;
+
+  --color-success: #41d4a8;
+  --color-good: #41d4a8;
+  --color-warning: #fab219;
+  --color-serious: #ff9f43;
+  --color-critical: #ff6a69;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hide native number-input spinners so amount fields match the design. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Themed scrollbars so the app keeps its look instead of native OS bars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-strong);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-muted);
+}
