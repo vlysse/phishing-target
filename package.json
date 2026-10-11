@@ -1,5 +1,5 @@
 {
-  "name": "tdvx-target-backend",
+  "name": "tdvx-target-backend-mfa",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -23,6 +23,7 @@
     "express-async-errors": "^3.1.1",
     "jsonwebtoken": "^9.0.2",
     "nanoid": "^5.0.9",
+    "resend": "^4.0.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

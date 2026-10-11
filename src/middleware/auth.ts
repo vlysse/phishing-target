@@ -29,6 +29,12 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ error: "session_expired" });
     }
 
+    // A pending_mfa cookie travels but cannot reach protected routes until
+    // /auth/otp promotes it. The FE reads this response to render the gate.
+    if (session.status === "pending_mfa") {
+      return res.status(403).json({ error: "mfa_required", authReqId: session.authRequestId });
+    }
+
     req.userId = payload.sub;
     next();
   } catch {

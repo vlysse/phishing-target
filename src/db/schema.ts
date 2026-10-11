@@ -55,10 +55,54 @@ export const sessions = sqliteTable("sessions", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  authRequestId: text("auth_request_id"), // set by MFA branch only; nullable here
+  authRequestId: text("auth_request_id"), // links the session to the OTP flow that authorized it
+  // pending_mfa: cookie is set but the second factor hasn't been cleared yet —
+  // protected routes refuse this. Promoted to 'active' only after /auth/otp.
+  status: text("status", { enum: ["pending_mfa", "active", "revoked"] })
+    .notNull()
+    .default("pending_mfa"),
   issuedAt: integer("issued_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
   revokedAt: integer("revoked_at", { mode: "timestamp" }),
+});
+
+/**
+ * A pending multi-factor login. Created after the password check passes but
+ * before any session exists — its id is the `authReqId` the /auth/mfa page
+ * carries in its query string.
+ */
+export const authRequests = sqliteTable("auth_requests", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  status: text("status", { enum: ["pending", "verified", "expired"] })
+    .notNull()
+    .default("pending"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});
+
+/**
+ * One issued OTP. The code itself is stored only as a hash. Enterprise-standard
+ * fields: creation + expiry (10 min), a consumed timestamp (single-use), and an
+ * attempt counter for lockout.
+ */
+export const otpCodes = sqliteTable("otp_codes", {
+  id: text("id").primaryKey(),
+  authRequestId: text("auth_request_id")
+    .notNull()
+    .references(() => authRequests.id, { onDelete: "cascade" }),
+  codeHash: text("code_hash").notNull(),
+  channel: text("channel").notNull().default("email"),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  consumedAt: integer("consumed_at", { mode: "timestamp" }),
 });

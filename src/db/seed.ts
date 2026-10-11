@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { nanoid } from "nanoid";
 import { db } from "./index.js";
-import { accounts, transactions, users } from "./schema.js";
+import { accounts, authRequests, otpCodes, sessions, transactions, users } from "./schema.js";
 import { hashPassword } from "../lib/password.js";
 
 const CATEGORIES_INCOME = ["client_payment", "interest", "refund", "transfer_in"];
@@ -12,59 +12,70 @@ const COUNTERPARTIES_EXPENSE = ["Payroll Batch", "Office Utilities Co", "CloudSt
 function randomBetween(min: number, max: number) {
   return Math.round((Math.random() * (max - min) + min) * 100) / 100;
 }
-
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-async function main() {
-  console.log("Seeding tdvx-target base database...");
+// The MFA demo user. OTP is emailed here, so it must be a real inbox you can
+// read. Password is the same across accounts for demo simplicity.
+const SEED_USERS = [
+  { name: "Ulysse Tadahy", email: "ulyssetadahy@gmail.com", role: "finance_officer" },
+];
 
+const ACCOUNT_DEFS = [
+  { type: "current" as const, nickname: "Operating Current Account", balance: 482_350.75 },
+  { type: "savings" as const, nickname: "Reserve Savings", balance: 915_020.4 },
+  { type: "payroll" as const, nickname: "Payroll Disbursement Account", balance: 210_500 },
+  { type: "business" as const, nickname: "Business Growth Account", balance: 76_430.1 },
+];
+
+async function clearAll() {
+  // FK-safe order: children before parents.
+  await db.delete(otpCodes);
+  await db.delete(authRequests);
+  await db.delete(sessions);
+  await db.delete(transactions);
+  await db.delete(accounts);
+  await db.delete(users);
+}
+
+async function seedUser(def: (typeof SEED_USERS)[number]) {
   const userId = nanoid();
   await db.insert(users).values({
     id: userId,
-    name: "Amara Chetty",
-    email: "accountant@tdvxbank.com",
+    name: def.name,
+    email: def.email,
     passwordHash: await hashPassword("Password123!"),
     avatarUrl: null,
-    role: "finance_officer",
+    role: def.role,
   });
 
-  const accountDefs = [
-    { type: "current" as const, nickname: "Operating Current Account", balance: 482_350.75 },
-    { type: "savings" as const, nickname: "Reserve Savings", balance: 915_020.4 },
-    { type: "payroll" as const, nickname: "Payroll Disbursement Account", balance: 210_500 },
-    { type: "business" as const, nickname: "Business Growth Account", balance: 76_430.1 },
-  ];
-
   const accountIds: string[] = [];
-  for (const def of accountDefs) {
+  for (const a of ACCOUNT_DEFS) {
     const id = nanoid();
     accountIds.push(id);
     await db.insert(accounts).values({
       id,
       userId,
-      type: def.type,
+      type: a.type,
       accountNumber: `TDVX${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-      nickname: def.nickname,
-      balance: def.balance,
+      nickname: a.nickname,
+      balance: a.balance,
       currency: "MUR",
     });
   }
 
   const now = Date.now();
   const DAY = 24 * 60 * 60 * 1000;
-  const rows: (typeof transactions.$inferInsert)[] = [];
-
+  let txCount = 0;
   for (let daysAgo = 0; daysAgo < 90; daysAgo++) {
-    const txCountToday = Math.random() < 0.6 ? 1 : Math.random() < 0.8 ? 2 : 0;
-    for (let i = 0; i < txCountToday; i++) {
+    const perDay = Math.random() < 0.6 ? 1 : Math.random() < 0.8 ? 2 : 0;
+    for (let i = 0; i < perDay; i++) {
       const isIncome = Math.random() < 0.45;
       const id = nanoid();
-      const accountId = pick(accountIds);
-      rows.push({
+      await db.insert(transactions).values({
         id,
-        accountId,
+        accountId: pick(accountIds),
         description: isIncome ? "Incoming payment" : "Outgoing payment",
         type: isIncome ? "income" : "expense",
         category: isIncome ? pick(CATEGORIES_INCOME) : pick(CATEGORIES_EXPENSE),
@@ -74,15 +85,24 @@ async function main() {
         date: new Date(now - daysAgo * DAY - Math.floor(Math.random() * DAY)),
         receiptNumber: `TRX-${id.slice(0, 8).toUpperCase()}`,
       });
+      txCount++;
     }
   }
+  return txCount;
+}
 
-  for (const row of rows) {
-    await db.insert(transactions).values(row);
+async function main() {
+  console.log("Seeding tdvx-target MFA database (idempotent)...");
+  await clearAll();
+
+  let total = 0;
+  for (const u of SEED_USERS) {
+    total += await seedUser(u);
+    console.log(`  seeded ${u.email} (${ACCOUNT_DEFS.length} accounts)`);
   }
 
-  console.log(`Seeded 1 user, ${accountDefs.length} accounts, ${rows.length} transactions.`);
-  console.log(`Login with accountant@tdvxbank.com / Password123!`);
+  console.log(`Done: ${SEED_USERS.length} user(s), ${total} transactions.`);
+  console.log("Login: ulyssetadahy@gmail.com / Password123!  (OTP emailed via Resend)");
 }
 
 main()
